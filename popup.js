@@ -60,8 +60,7 @@ window.addEventListener('load', function(){
     })
     
     document.querySelector('#buy').addEventListener('click', function() {
-        let req = new Array("init", "0");
-        sendRequest(req, constructLabel);
+        label.textContent = getBuyInfo();
         
         let quantityVal;
         if (isMax == true) {
@@ -71,14 +70,9 @@ window.addEventListener('load', function(){
             quantityVal = quantityValue;
         }
         
-        let req2 = new Array("buy", quantityVal);
-        sendRequest(req2);
+        buy(quantityVal);
     });
 })
-
-function constructLabel(res) {
-    label.textContent = res.label;
-}
 
 function getElements() {
     label = document.querySelector('#label');
