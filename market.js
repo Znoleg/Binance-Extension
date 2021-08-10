@@ -48,7 +48,9 @@ async function buy(quantity) {
         while (quantity != 0) {
             plusBtn.click();
             quantity--;
+            await new Promise(resolve => setTimeout(resolve, 5));
         }
+        await new Promise(resolve => setTimeout(resolve, 25));
     }
     
     let button2 = await TryGetButtonRecursive(secondBtnClasses, 25);
