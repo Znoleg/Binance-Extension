@@ -3,9 +3,8 @@ const firstBtnClasses = "css-t1aewe";
 const plusBtnClasses = "css-nphwqx";
 const maxBtnClasses = "css-1rqdfgy";
 const secondBtnClasses = "css-d8znws";
-    
 
-const html = `<p id="label"></p>
+const html = `<p id="label" style="text-align: center; font-size: 1em;"></p>
     <div class="inline-container" style="margin: 5px 0 10px 0; display: flex; justify-content: center; align-items: center; width: 240px;">
         <div>
             <span id="quan-span" style="font-size: 1.25em;">Quantity:</span> 
@@ -18,7 +17,8 @@ const html = `<p id="label"></p>
             </div>
         </div>
     </div>
-    <button id="buy" style="display: block; margin: 0 auto 0 auto; cursor: pointer; font-family: inherit; text-align: center; font-weight: 700; border: none; background-image: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 100%); height: 30px; width: 140px; font-size: 1em;">Start auto buy</button>`;
+    <button id="buy" style="display: block; margin: 0 auto 0 auto; cursor: pointer; font-family: inherit; text-align: center; font-weight: 700; border: none; background-image: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 100%); height: 30px; width: 140px; font-size: 1em;">Start auto buy</button>
+    <span id="msg-span" style="display:block; margin: 5px auto 0 auto; text-align: center; font-size: 0.8em"></span>`;
 
 function TryGetButton(buttonClasses) {
     return document.getElementsByClassName(buttonClasses)[0];
@@ -34,6 +34,7 @@ async function TryGetButtonRecursive(buttonClasses, timeInterval) {
 }
 
 async function buy(quantity) {
+    printGood("Auto-buy has started! Waiting for sale.");
     let button1 = await TryGetButtonRecursive(firstBtnClasses, 25);
     button1.click();
     
@@ -62,6 +63,7 @@ let label;
 let quantitySpan;
 let minusBtn, plusBtn;
 let quantityInput;
+let msgSpan;
 
 let quantityValue, quantityMin = null, quantityMax = null;
 let isMax = false;
@@ -70,7 +72,7 @@ window.addEventListener('load', async function() {
     let container = document.createElement('div');
     container.style.backgroundColor = '#fafafa';
     container.style.width = '256px';
-    container.style.height = '135px';
+    container.style.height = '155px';
     container.style.position = 'fixed';
     container.style.bottom = '5%';
     container.style.left = '5%';
@@ -94,6 +96,7 @@ window.addEventListener('load', async function() {
     
     document.querySelector('#buy').addEventListener('click', function() {
         label.textContent = getBuyInfo();
+        container.style.height = '195px';
         
         let quantityVal;
         if (isMax == true) {
@@ -139,19 +142,35 @@ function changeQuantityInput(delta) {
     quantityInput.value = parseInt(quantityValue);
 }
 
+function printWarning(msg) {
+    msgSpan.style.color = 'red';
+    msgSpan.innerHTML = msg;
+}
+
+function printGood(msg) {
+    msgSpan.style.color = 'green';
+    msgSpan.innerHTML = msg;
+}
+
 function getElements() {
-    label = document.querySelector('#label');
-    quantitySpan = document.querySelector('#quan-span');
-    let buttons = document.querySelectorAll('.quantity-button');
-    minusBtn = buttons[0];
-    plusBtn = buttons[1];
-    quantityInput = document.querySelector('#buy-quantity');
-    quantityValue = parseInt(quantityInput.getAttribute('value')); 
-    
-    if (quantityInput.hasAttribute('min')) {
-        quantityMin = quantityInput.getAttribute('min');
+    try {
+        msgSpan = document.querySelector('#msg-span');
+        label = document.querySelector('#label');
+        quantitySpan = document.querySelector('#quan-span');
+        let buttons = document.querySelectorAll('.quantity-button');
+        minusBtn = buttons[0];
+        plusBtn = buttons[1];
+        quantityInput = document.querySelector('#buy-quantity');
+        quantityValue = parseInt(quantityInput.getAttribute('value')); 
+
+        if (quantityInput.hasAttribute('min')) {
+            quantityMin = quantityInput.getAttribute('min');
+        }
+        if (quantityInput.hasAttribute('max')) {
+            quantityMax = quantityInput.getAttribute('max');
+        }
     }
-    if (quantityInput.hasAttribute('max')) {
-        quantityMax = quantityInput.getAttribute('max');
+    catch (e){
+        printWarning("Something wrong on extenstion start.\n Try refresh a page");
     }
 }

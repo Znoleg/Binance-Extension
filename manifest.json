@@ -1,6 +1,8 @@
 {
     "name": "Binance-Bot",
+    "description": "NFT auto-buy bot for binance marketplace",
     "version": "1.0",
+    "icons": {"128": "128.png"},
     "manifest_version": 2,
     "content_scripts": [
         {
