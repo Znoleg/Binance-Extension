@@ -11,7 +11,7 @@ const html = `<p id="label" style="text-align: center; font-size: 1em;"></p>
 
             <div class="inline-container" style="margin: 5px -10px 10px 0; display: flex; justify-content: center; align-items: center; width: 240px;">
                 <button class="quantity-button" style="border: none; width: 40px; height: 40px; cursor: pointer; opacity: 1; border-radius: 32px; background: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 99.77%); justify-content: center; align-items: center;">-</button>
-                <input id="buy-quantity" style="margin: 10px; width: 35%;" type="number" name="quantity" value="0" min="0" disabled>
+                <input id="buy-quantity" style="margin: 10px; width: 35%;" type="number" name="quantity" value="1" min="1" disabled>
                 <button class="quantity-button" style="border: none; width: 40px; height: 40px; cursor: pointer; opacity: 1; border-radius: 32px; background: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 99.77%); justify-content: center; align-items: center;">+</button>
                 <input type="checkbox" name="max" id="max" style="margin-left: 10px;"><label for="max"><span id="maxspan" style="font-weight: 600; color: rgb(201, 148, 0); text-decoration: underline; cursor: pointer; font-size: 1em;">Max</span></label>
             </div>
@@ -33,25 +33,40 @@ async function TryGetButtonRecursive(buttonClasses, timeInterval) {
     return button;
 }
 
+function TryGetButtonSec(buttonClasses) {
+    return document.getElementsByClassName(buttonClasses)[1];
+}
+
+async function TryGetButtonRecursiveSec(buttonClasses, timeInterval) {
+    let button = TryGetButton(buttonClasses);
+    while (button == null) {
+        await new Promise(resolve => setTimeout(resolve, timeInterval));
+        button = TryGetButtonSec(buttonClasses);
+    }
+    return button;
+}
+
 async function buy(quantity) {
     printGood("Auto-buy has started! Waiting for sale.");
     let button1 = await TryGetButtonRecursive(firstBtnClasses, 25);
-    button1.click();
     
     if (quantity == "max") {
         let maxBtn = await TryGetButtonRecursive(maxBtnClasses, 25);
         maxBtn.click();
+        await new Promise(resolve => setTimeout(resolve, 50));
     }
     else {
-        let plusBtn = await TryGetButtonRecursive(plusBtnClasses, 25);
-        quantity = parseInt(quantity);
-        while (quantity != 0) {
+        let plusBtn = await TryGetButtonRecursiveSec(plusBtnClasses, 25);
+        let pressQuantity = parseInt(quantity) - 1;
+        while (pressQuantity != 0) {
             plusBtn.click();
-            quantity--;
-            await new Promise(resolve => setTimeout(resolve, 5));
+            pressQuantity--;
         }
-        await new Promise(resolve => setTimeout(resolve, 25));
+        await new Promise(resolve => setTimeout(resolve, 50));
     }
+    
+    button1.click();
+    await new Promise(resolve => setTimeout(resolve, 50));
     
     let button2 = await TryGetButtonRecursive(secondBtnClasses, 25);
     button2.click();

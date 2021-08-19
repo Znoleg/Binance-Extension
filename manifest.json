@@ -1,12 +1,12 @@
 {
     "name": "Binance-Bot",
     "description": "NFT auto-buy bot for binance marketplace",
-    "version": "1.0",
+    "version": "1.0.7",
     "icons": {"128": "128.png"},
-    "manifest_version": 2,
+    "manifest_version": 3,
     "content_scripts": [
         {
-            "matches": ["*://www.binance.com/ru/nft/blindBox/*"],
+            "matches": ["*://*.binance.com/*/nft/blindBox/*"],
             "js": ["market.js"]
         }
     ]
