@@ -3,9 +3,10 @@ const firstBtnClasses = "css-t1aewe";
 const plusBtnClasses = "css-nphwqx";
 const maxBtnClasses = "css-1rqdfgy";
 const secondBtnClasses = "css-d8znws";
+let container;
 
 const html = `<p id="label" style="text-align: center; font-size: 1em;"></p>
-    <div class="inline-container" style="margin: 5px 0 10px 0; display: flex; justify-content: center; align-items: center; width: 240px;">
+    <div class="inline-container" style="margin: 5px 0 0 0; display: flex; justify-content: center; align-items: center; width: 240px;">
         <div>
             <span id="quan-span" style="font-size: 1.25em;">Quantity:</span> 
 
@@ -17,12 +18,13 @@ const html = `<p id="label" style="text-align: center; font-size: 1em;"></p>
             </div>
         </div>
     </div>
-    <button id="buy" style="display: block; margin: 0 auto 0 auto; cursor: pointer; font-family: inherit; text-align: center; font-weight: 700; border: none; background-image: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 100%); height: 30px; width: 140px; font-size: 1em;">Start auto buy</button>
+    <div style="margin: 0 0 0 10px;">
+        Button press delay: <input id="press-delay" type="range" min="20" max="75" value="45"><span id="press-delay-hint" style="font-size: 0.75em;"></span>
+        <p></p>
+        Button scan delay: <input id="scan-delay" type="range" min="15" max="30" value="20"><span id="scan-delay-hint" style="font-size: 0.75em;"></span>
+    </div>
+    <button id="buy" style="display: block; margin: 10px auto 0 auto; cursor: pointer; font-family: inherit; text-align: center; font-weight: 700; border: none; background-image: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 100%); height: 30px; width: 140px; font-size: 1em;">Start auto buy</button>
     <span id="msg-span" style="display:block; margin: 5px auto 0 auto; text-align: center; font-size: 0.8em"></span>`;
-
-async function sleep(ms) {
-    await new Promise(resolve => setTimeout(resolve, ms));
-}
 
 function TryGetButton(buttonClasses) {
     return document.getElementsByClassName(buttonClasses)[0];
@@ -31,35 +33,70 @@ function TryGetButton(buttonClasses) {
 async function TryGetButtonRecursive(buttonClasses, timeInterval) {
     let button = TryGetButton(buttonClasses);
     while (button == null) {
-        await sleep(timeInteval);
+        await new Promise(resolve => setTimeout(resolve, timeInterval));
         button = TryGetButton(buttonClasses);
     }
     return button;
 }
 
-async function buy(quantity) {
-    printGood("Auto-buy has started! Waiting for sale.");
-    let button1 = await TryGetButtonRecursive(firstBtnClasses, 25);
-    
-    if (quantity == "max") {
-        let maxBtn = document.getElementsByClassName(maxBtnClasses)[0];
-        maxBtn.click();
+function TryGetButtonSec(buttonClasses) {
+    return document.getElementsByClassName(buttonClasses)[1];
+}
+
+async function TryGetButtonRecursiveSec(buttonClasses, timeInterval) {
+    let button = TryGetButton(buttonClasses);
+    while (button == null) {
+        await new Promise(resolve => setTimeout(resolve, timeInterval));
+        button = TryGetButtonSec(buttonClasses);
     }
-    else {
-        let plusBtn = document.getElementsByClassName(plusBtnClasses)[1];
-        let pressQuantity = parseInt(quantity) - 1;
-        while (pressQuantity != 0) {
-            plusBtn.click();
-            pressQuantity--;
+    return button;
+}
+
+let retries = 0;
+
+async function buy(quantity, pressDelay, scanDelay) {
+    try {
+        if (pressDelay == null || pressDelay == 0 || scanDelay == null || scanDelay == 0) {
+            if (pressDelay == null || pressDelay == 0) pressDelay = 50;
+            if (scanDelay == null || scanDelay == 0) scanDelay = 20;
         }
+        else {
+            pressDelay = parseInt(pressDelay);
+            scanDelay = parseInt(scanDelay);
+        }
+        printGood("Auto-buy has started! Waiting for sale.");
+
+        let button1 = await TryGetButtonRecursive(firstBtnClasses, scanDelay);
+        
+        if (quantity == "max") {
+            let maxBtn = await TryGetButtonRecursive(maxBtnClasses, scanDelay);
+            maxBtn.click();
+            await new Promise(resolve => setTimeout(resolve, pressDelay));
+        }
+        /*else {
+            let plusBtn = await TryGetButtonRecursiveSec(plusBtnClasses, scanDelay);
+            let pressQuantity = parseInt(quantity) - 1;
+            while (pressQuantity != 0) {
+                plusBtn.click();
+                pressQuantity--;
+            }
+            await new Promise(resolve => setTimeout(resolve, pressDelay));
+        }*/
+        
+        button1.click();
+        await new Promise(resolve => setTimeout(resolve, pressDelay));
+        
+        let button2 = await TryGetButtonRecursive(secondBtnClasses, scanDelay);
+        button2.click();
     }
-    await sleep(65);
-    
-    button1.click();
-    await sleep(50);
-    
-    let button2 = await TryGetButtonRecursive(secondBtnClasses, 25);
-    button2.click();
+    catch (e) {
+        if (retries == 4) {
+            return;
+        }
+        printWarning(e.stack);
+        retries++;
+        buy(quantity);
+    }
 }
 
 function getBuyInfo() {
@@ -75,11 +112,14 @@ let msgSpan;
 let quantityValue, quantityMin = null, quantityMax = null;
 let isMax = false;
 
+let pressDelayInput, scanDelayInput;
+let minPressDelay, maxPressDelay, minScanDelay, maxScanDelay, currentPressDelay, currentScanDelay; //delays
+
 window.addEventListener('load', async function() {
-    let container = document.createElement('div');
+    container = document.createElement('div');
     container.style.backgroundColor = '#fafafa';
-    container.style.width = '256px';
-    container.style.height = '155px';
+    container.style.width = '276px';
+    container.style.height = '185px';
     container.style.position = 'fixed';
     container.style.bottom = '5%';
     container.style.left = '5%';
@@ -101,9 +141,13 @@ window.addEventListener('load', async function() {
         changeQuantityInput(1);
     })
     
-    document.querySelector('#buy').addEventListener('click', function() {
+    let buyButton = document.querySelector('#buy');
+    buyButton.addEventListener('click', function() {
+        buyButton.disabled = true;
+        currentPressDelay = parseInt(pressDelayInput.value);
+        currentScanDelay = parseInt(scanDelayInput.value);
+
         label.textContent = getBuyInfo();
-        container.style.height = '195px';
         
         let quantityVal;
         if (isMax == true) {
@@ -113,15 +157,18 @@ window.addEventListener('load', async function() {
             quantityVal = quantityValue;
         }
         
-        buy(quantityVal);
+        buy(quantityVal, currentPressDelay, currentScanDelay);
     });
+
+    document.querySelector('#press-delay-hint').innerHTML = minPressDelay + '-' + maxPressDelay + ' ms';
+    document.querySelector('#scan-delay-hint').innerHTML = minScanDelay + '-' + maxScanDelay + ' ms';
 })
 
 function changeQuantityOpacity(isChecked) {
     const offOpacity = 0.3;
     const onOpacity = 1;
-    minusBtn.disabled = isChecked;
-    plusBtn.disabled = isChecked;
+    minusBtn.disabled = true;
+    plusBtn.disabled = true;
     
     let newOpacity;
     if (isChecked == true) {
@@ -150,11 +197,15 @@ function changeQuantityInput(delta) {
 }
 
 function printWarning(msg) {
+    container.style.bottom = '12%';
+    container.style.height = '245px';
     msgSpan.style.color = 'red';
     msgSpan.innerHTML = msg;
 }
 
 function printGood(msg) {
+    container.style.bottom = '5%';
+    container.style.height = '215px';
     msgSpan.style.color = 'green';
     msgSpan.innerHTML = msg;
 }
@@ -167,6 +218,9 @@ function getElements() {
         let buttons = document.querySelectorAll('.quantity-button');
         minusBtn = buttons[0];
         plusBtn = buttons[1];
+        minusBtn.disabled = true;
+        plusBtn.disabled = true;
+
         quantityInput = document.querySelector('#buy-quantity');
         quantityValue = parseInt(quantityInput.getAttribute('value')); 
 
@@ -176,8 +230,19 @@ function getElements() {
         if (quantityInput.hasAttribute('max')) {
             quantityMax = quantityInput.getAttribute('max');
         }
+
+        pressDelayInput = document.querySelector('#press-delay');
+        scanDelayInput = document.querySelector('#scan-delay');
+        if (!pressDelayInput.hasAttribute('min') || !pressDelayInput.hasAttribute('max') || !pressDelayInput.hasAttribute('value')
+        || !scanDelayInput.hasAttribute('min') || !scanDelayInput.hasAttribute('max') || !scanDelayInput.hasAttribute('value')) 
+            throw "No ms inputs min-max-value";
+        
+        minPressDelay = parseInt(pressDelayInput.getAttribute('min'));
+        maxPressDelay = parseInt(pressDelayInput.getAttribute('max'));
+        minScanDelay = parseInt(scanDelayInput.getAttribute('min'));
+        maxScanDelay = parseInt(scanDelayInput.getAttribute('max'));
     }
     catch (e){
-        printWarning("Something wrong on extenstion start.\n Try refresh a page");
+        printWarning("Something wrong on extenstion start.\n Try refresh a page\n" + e.stack);
     }
 }
