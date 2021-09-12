@@ -1,3 +1,5 @@
+'use strict';
+
 const labelClasses = "css-16xz99j";
 const firstBtnClasses = "css-t1aewe";
 const plusBtnClasses = "css-nphwqx";
@@ -6,7 +8,11 @@ const secondBtnClasses = "css-d8znws";
 const timerClasses = "css-isd1ku";
 let container;
 
-const html = `<p id="label"></p>
+console.log(10);
+
+const html = `
+<body onload="alert('hi')">
+<p id="label"></p>
     <div class="inline-container">
         <div>
             <span id="quan-span">Quantity:</span> 
@@ -27,7 +33,10 @@ const html = `<p id="label"></p>
         <input type="checkbox" name="refresh-input" id="refresh-input"><label for="refresh-input">Delayed purchase</label>
     </div>
     <button id="buy">Start auto buy</button>
-    <span id="msg-span"></span>`;
+    <span id="msg-span"></span>
+    <button id="ten" onclick=console.log(Lal)>Press</button>
+</body>    
+`;
 
 /* Buy functions */
 
@@ -262,7 +271,7 @@ function getElements() {
     }
 }
 
-window.addEventListener('load', async function() {
+async function OnLoad() {
     container = document.createElement('div');
     container.style.backgroundColor = '#fafafa';
     container.style.width = '276px';
@@ -273,7 +282,7 @@ window.addEventListener('load', async function() {
     container.style.outline = '3px solid rgb(240, 185,11)';
     container.innerHTML = html;
     document.body.appendChild(container);
-    
+
     getElements();
     maxBtn.addEventListener('input', function(e) {
         isMax = this.checked;
@@ -313,6 +322,23 @@ window.addEventListener('load', async function() {
     trySetLocalData();
     await startRefreshWaiting();
 
-    /*let response = await this.fetch("https://localhost:44389/api/Binance");
-    alert(response.body);*/
-});
+    let script = document.createElement('script');
+    script.setAttribute("src", chrome.runtime.getURL('keycloak.js'));
+    let head = document.head || document.getElementsByTagName("head")[0] || document.documentElement;
+    head.insertBefore(script, head.lastChild);
+
+    script = document.createElement('script');
+    script.setAttribute("src", chrome.runtime.getURL('module-bridge.js'));
+    head = document.head || document.getElementsByTagName("head")[0] || document.documentElement;
+    head.insertBefore(script, head.lastChild);
+
+    
+
+    //let response = await this.fetch("https://localhost:44389/api/Binance?user=Znol");
+    //alert(await response.json());
+};
+
+
+
+window.addEventListener('load', OnLoad);
+
