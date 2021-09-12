@@ -10,5 +10,9 @@
             "js": ["market.js"],
             "css": ["styles.css"]
         }
-    ]
+    ],
+    "web_accessible_resources": [{
+        "resources": ["http://localhost:8080/auth/js/keycloak.js", "keycloak.js", "module-bridge.js"],
+        "matches": ["<all_urls>"]
+    }]
 }
