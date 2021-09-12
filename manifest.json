@@ -1,18 +1,13 @@
 {
     "name": "Binance-Bot",
     "description": "NFT auto-buy bot for binance marketplace",
-    "version": "1.1",
+    "version": "1.1.1",
     "icons": {"128": "128.png"},
     "manifest_version": 3,
     "content_scripts": [
         {
             "matches": ["*://*.binance.com/*/nft/blindBox/*"],
-            "js": ["market.js"],
-            "css": ["styles.css"]
+            "js": ["market.js"]
         }
-    ],
-    "web_accessible_resources": [{
-        "resources": ["http://localhost:8080/auth/js/keycloak.js", "keycloak.js", "module-bridge.js"],
-        "matches": ["<all_urls>"]
-    }]
+    ]
 }
