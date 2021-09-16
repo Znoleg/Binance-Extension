@@ -3,6 +3,7 @@ const firstBtnClasses = "css-1qckmgm";
 const plusBtnClasses = "css-nphwqx";
 const maxBtnClasses = "css-1rqdfgy";
 const secondBtnClasses = "css-d8znws";
+const timerClasses = "css-1gfblx5";
 let container;
 
 const html = `
@@ -20,10 +21,12 @@ const html = `
             </div>
         </div>
     </div>
-    <div style="margin: 0 0 0 10px;">
+    <div id="setting-block">
         Button press delay: <input id="press-delay" type="range" min="20" max="75" value="45"><span id="press-delay-hint" style="font-size: 0.75em;"></span>
         <p></p>
         Button scan delay: <input id="scan-delay" type="range" min="15" max="30" value="20"><span id="scan-delay-hint" style="font-size: 0.75em;"></span>
+        <p></p>
+        <input type="checkbox" name="refresh-input" id="refresh-input"><label for="refresh-input">Delayed purchase</label>
     </div>
     <button id="buy" style="display: block; margin: 10px auto 0 auto; cursor: pointer; font-family: inherit; text-align: center; font-weight: 700; border: none; background-image: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 100%); height: 30px; width: 140px; font-size: 1em;">Start auto buy</button>
     <span id="msg-span" style="display:block; margin: 5px auto 0 auto; text-align: center; font-size: 0.8em"></span>
@@ -43,7 +46,7 @@ async function GetElementsRecursive(classes, ms) {
     return item;
 }
     
-async function GetSingleElementResursive(classes, ms, index) {
+async function GetSingleElementRecursive(classes, ms, index) {
     return ((await GetElementsRecursive(classes, ms))[index]);
 }
 
@@ -58,17 +61,19 @@ async function buy(quantity, pressDelay, scanDelay) {
             pressDelay = parseInt(pressDelay);
             scanDelay = parseInt(scanDelay);
         }
+
+        console.log("Buy has started");
         printGood("Auto-buy has started! Waiting for sale.");
 
-        let button1 = await GetSingleElementResursive(firstBtnClasses, scanDelay, 0);
+        let button1 = await GetSingleElementRecursive(firstBtnClasses, scanDelay, 0);
         
         if (quantity == "max") {
-            let maxBtn = await GetSingleElementResursive(maxBtnClasses, scanDelay, 0);
+            let maxBtn = await GetSingleElementRecursive(maxBtnClasses, scanDelay, 0);
             maxBtn.click();
             await sleep(pressDelay);
         }
         else {
-            let plusBtn = await GetSingleElementResursive(plusBtnClasses, scanDelay, 1);
+            let plusBtn = await GetSingleElementRecursive(plusBtnClasses, scanDelay, 1);
             let pressQuantity = parseInt(quantity) - 1;
             while (pressQuantity != 0) {
                 plusBtn.click();
@@ -80,7 +85,11 @@ async function buy(quantity, pressDelay, scanDelay) {
         button1.click();
         await sleep(pressDelay);
         
-        let button2 = await GetSingleElementResursive(secondBtnClasses, scanDelay, 0);
+        let button2 = await GetSingleElementRecursive(secondBtnClasses, scanDelay, 0);
+        while (button2 == null) {
+            button2 = await GetSingleElementRecursive(secondBtnClasses, 10, 0);
+        }
+        await sleep(50);
         button2.click();
     }
     catch (e) {
@@ -103,62 +112,11 @@ let isMax = false;
 
 let pressDelayInput, scanDelayInput;
 let minPressDelay, maxPressDelay, minScanDelay, maxScanDelay, currentPressDelay, currentScanDelay; //delays
+let maxBtn;
+let buyButton;
+let buyPressed = false;
 
-function createStartDiv() {
-    container = document.createElement('div');
-    container.style.backgroundColor = '#fafafa';
-    container.style.width = '276px';
-    container.style.height = '185px';
-    container.style.position = 'fixed';
-    container.style.bottom = '5%';
-    container.style.left = '5%';
-    container.style.outline = '3px solid rgb(240, 185,11)';
-    container.innerHTML = html;
-    document.body.appendChild(container);
-}
-
-window.addEventListener('load', async function() {
-try {
-    createStartDiv();
-    getElements();
-    document.querySelector('#max').addEventListener('input', function(e) {
-        isMax = this.checked;
-        changeQuantityOpacity(isMax);
-    });
-    
-    minusBtn.addEventListener('click', function() {
-        changeQuantityInput(-1);
-    });
-    
-    plusBtn.addEventListener('click', function() {
-        changeQuantityInput(1);
-    })
-    
-    let buyButton = document.querySelector('#buy');
-    buyButton.addEventListener('click', function() {
-        buyButton.disabled = true;
-        plusBtn.disabled = true;
-        minusBtn.disabled = true;
-        currentPressDelay = parseInt(pressDelayInput.value);
-        currentScanDelay = parseInt(scanDelayInput.value);
-        
-        let quantityVal;
-        if (isMax == true) {
-            quantityVal = "max";
-        }
-        else {
-            quantityVal = quantityValue;
-        }
-        
-        buy(quantityVal, currentPressDelay, currentScanDelay);
-    });
-
-    document.querySelector('#press-delay-hint').innerHTML = minPressDelay + '-' + maxPressDelay + ' ms';
-    document.querySelector('#scan-delay-hint').innerHTML = minScanDelay + '-' + maxScanDelay + ' ms';
-} catch (e) {
-    printWarning(e.stack);
-}
-});
+/* Visual functions */
 
 function changeQuantityOpacity(isChecked) {
     const offOpacity = 0.3;
@@ -206,6 +164,98 @@ function printGood(msg) {
     msgSpan.innerHTML = msg;
 }
 
+/* */
+
+/* Refresh functionality */
+let refreshInput;
+
+function setLocalData() {
+    localStorage.setItem("isMax", isMax);
+    localStorage.setItem("quantityValue", quantityValue);
+    localStorage.setItem("pressDelay", pressDelayInput.value);
+    localStorage.setItem("scanDelay", scanDelayInput.value);
+    localStorage.setItem("buyPressed", buyPressed);
+}
+
+function clearLocalData() {
+    localStorage.removeItem("isMax");
+    localStorage.removeItem("quantityValue");
+    localStorage.removeItem("pressDelay");
+    localStorage.removeItem("scanDelay");
+    localStorage.removeItem("buyPressed");
+}
+
+function trySetLocalData() {
+    let isMax = localStorage.getItem("isMax");
+    
+    if (isMax != null) { // if localStorage exists
+        if (isMax == "true") { 
+            maxBtn.click();
+        }
+        else {
+            quantityValue = parseInt(localStorage.getItem("quantityValue"));
+            quantityInput.value = quantityValue;
+        }
+
+        pressDelayInput.value = parseInt(localStorage.getItem("pressDelay"));
+        scanDelayInput.value = parseInt(localStorage.getItem("scanDelay"));
+        let isPressed = localStorage.getItem("buyPressed");
+        if (isPressed == true || isPressed == "true") {
+            buyButton.click();
+        }
+        clearLocalData();
+        return true;
+    }
+    return false;
+}
+
+const dayMs = 86400000;
+const hourMs = 3600000;
+const minuteMs = 60000;
+const secondMs = 1000;
+let refreshBeforeMs = secondMs * 15; 
+async function startRefreshWaiting() {
+try {
+    let timers = await GetElementsRecursive(timerClasses, 50); // null here
+    if (timers.length == 0) {
+        printWarning("No timers found!\n Disabled delayed purchase.");
+        return;
+    }; // no timers
+
+    let days = parseInt(timers[0].innerHTML, 10);
+    let hours = parseInt(timers[1].innerHTML, 10);
+    let minutes = parseInt(timers[2].innerHTML, 10);
+    let seconds = parseInt(timers[3].innerHTML, 10);
+    
+    let waitTime = days * dayMs + hours * hourMs + minutes * minuteMs + seconds * secondMs - refreshBeforeMs;
+    console.log("Wait time: " + waitTime);
+    await sleep(waitTime);
+    
+    if (refreshInput.checked == true || refreshInput.checked == "true") {
+        setLocalData();
+        document.location.reload();
+    }
+}
+catch (e) {
+    printWarning(e.stack);
+}
+}
+
+/* */
+
+function createStartDiv() {
+    container = document.createElement('div');
+    container.style.backgroundColor = '#fafafa';
+    container.style.width = '290px';
+    container.style.height = '195px';
+    container.style.position = 'fixed';
+    container.style.bottom = '5%';
+    container.style.left = '5%';
+    container.style.outline = '3px solid rgb(240, 185,11)';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+}
+
 function getElements() {
     try {
         msgSpan = document.querySelector('#msg-span');
@@ -227,6 +277,10 @@ function getElements() {
             quantityMax = quantityInput.getAttribute('max');
         }
 
+        maxBtn = document.querySelector('#max');
+        refreshInput = document.querySelector('#refresh-input');
+        buyButton = document.querySelector('#buy');
+
         pressDelayInput = document.querySelector('#press-delay');
         scanDelayInput = document.querySelector('#scan-delay');
         if (!pressDelayInput.hasAttribute('min') || !pressDelayInput.hasAttribute('max') || !pressDelayInput.hasAttribute('value')
@@ -239,6 +293,62 @@ function getElements() {
         maxScanDelay = parseInt(scanDelayInput.getAttribute('max'));
     }
     catch (e){
-        printWarning("Something wrong on extenstion start.\n Try refresh a page\n" + e.stack);
+        printWarning("Something wrong on extension start.\n Try refresh a page\n" + e.stack);
     }
 }
+
+window.addEventListener('load', async function() {
+    try {
+        createStartDiv();
+        getElements();
+        maxBtn.addEventListener('input', function(e) {
+            isMax = this.checked;
+            changeQuantityOpacity(isMax);
+        });
+        
+        minusBtn.addEventListener('click', function() {
+            changeQuantityInput(-1);
+        });
+        
+        plusBtn.addEventListener('click', function() {
+            changeQuantityInput(1);
+        })
+        
+        buyButton.addEventListener('click', function() {
+            buyPressed = true;
+            buyButton.disabled = true;
+            plusBtn.disabled = true;
+            minusBtn.disabled = true;
+            currentPressDelay = parseInt(pressDelayInput.value);
+            currentScanDelay = parseInt(scanDelayInput.value);
+            
+            let quantityVal;
+            if (isMax == true) {
+                quantityVal = "max";
+            }
+            else {
+                quantityVal = quantityValue;
+            }
+            
+            buy(quantityVal, currentPressDelay, currentScanDelay);
+        });
+    
+        document.querySelector('#press-delay-hint').innerHTML = minPressDelay + '-' + maxPressDelay + ' ms';
+        document.querySelector('#scan-delay-hint').innerHTML = minScanDelay + '-' + maxScanDelay + ' ms';
+        
+        if (!trySetLocalData())
+            startRefreshWaiting();
+    
+    } catch (e) {
+        printWarning(e.stack);
+    }
+});
+
+/* Test functions */
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey) {
+        setLocalData();
+        document.location.reload();
+    }
+});
+/* */
