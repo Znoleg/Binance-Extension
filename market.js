@@ -26,7 +26,7 @@ const html = `
         <p></p>
         Button scan delay: <input id="scan-delay" type="range" min="15" max="30" value="20"><span id="scan-delay-hint" style="font-size: 0.75em;"></span>
         <p></p>
-        <input type="checkbox" name="refresh-input" id="refresh-input"><label for="refresh-input">Delayed purchase</label>
+        <input type="checkbox" name="refresh-input" id="refresh-input"><label id="refresh-input-label" for="refresh-input">Delayed purchase</label>
     </div>
     <button id="buy" style="display: block; margin: 10px auto 0 auto; cursor: pointer; font-family: inherit; text-align: center; font-weight: 700; border: none; background-image: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 100%); height: 30px; width: 140px; font-size: 1em;">Start auto buy</button>
     <span id="msg-span" style="display:block; margin: 5px auto 0 auto; text-align: center; font-size: 0.8em"></span>
@@ -454,6 +454,7 @@ window.addEventListener('load', async function() {
         }*/
 
         refreshInput.remove();
+        document.querySelector('#refresh-input-label').remove();
         
     } catch (e) {
         printWarning(e.stack);
