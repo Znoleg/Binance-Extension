@@ -266,7 +266,6 @@ async function GetBoxesInfo() {
         let response = await fetch(boxesInfoUrl);
         let json = await response.json();
         let boxes = json.data;
-        console.log("Boxes: " + boxes); // can be deleted
         return boxes;
     }
     catch (e) {
@@ -277,11 +276,11 @@ async function GetBoxesInfo() {
 function GetBoxByID(boxes = {}, prodId = "") {
     try {
         for (let i = 0; i < boxes.length; i++) {
-            if (boxes[i].productId == productId) {
-                return parseInt(boxes[i].secondMarketSellingDelay);
+            if (boxes[i].productId == prodId) {
+                return boxes[i];
             }
         }
-        printWarning("Box " + productId + " not found! Delayed purchase disabled.");
+        printWarning("Box " + prodId + " not found! Delayed purchase disabled.");
         DisableDelayedPurchase();
     }
     catch (e) {
@@ -298,10 +297,10 @@ async function startRefreshWaiting(prodId = "") {
         console.log(buyBox);
 
         let buyTime = buyBox.startTime;
-        console.log(buyTime);
-
         let currentTime = await GetServerTime();
+        console.log("Current time: " + currentTime + '\n' + "Buy time: " + buyTime);
 
+        if (waitTime < 0) return;
         let waitTime = buyTime - currentTime - stopBeforeMs;
         console.log("Wait time: " + waitTime);
         await sleep(waitTime);
@@ -465,11 +464,10 @@ document.addEventListener('keydown', async function(event) {
         setLocalData();
         document.location.reload();
     }
-    else if (event.altKey) {
+    else if (event.ctrlKey) {
         let productId = getProdID();
-        alert(productId);
         let boxes = await GetBoxesInfo();
         let buyBox = GetBoxByID(boxes, productId);
-        alert(buyBox.name);
+        console.log(buyBox.name);
     }
 });
