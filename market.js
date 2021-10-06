@@ -446,17 +446,30 @@ window.addEventListener('load', async function() {
     
         checkENVersion();
         
-        /*if (trySetLocalData() == false) {
+        if (trySetLocalData() == false) {
             let productId = getProdID();
             startRefreshWaiting(productId);
         }
         else {
             refreshInput.remove();
-        }*/
-
-        refreshInput.remove(); // !!!remove after testing on test version
+        }
         
     } catch (e) {
         printWarning(e.stack);
+    }
+});
+
+/* Test functions */
+document.addEventListener('keydown', async function(event) {
+    if (event.shiftKey) {
+        setLocalData();
+        document.location.reload();
+    }
+    else if (event.altKey) {
+        let productId = getProdID();
+        alert(productId);
+        let boxes = await GetBoxesInfo();
+        let buyBox = GetBoxByID(boxes, productId);
+        alert(buyBox.name);
     }
 });
