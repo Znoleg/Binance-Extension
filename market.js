@@ -306,7 +306,7 @@ async function startRefreshWaiting(prodId = "") {
         console.log("Wait time: " + waitTime);
         await sleep(waitTime);
         
-        if (refreshInput.checked == true || refreshInput.checked == "true") {
+        if (refreshInput != null && (refreshInput.checked == true || refreshInput.checked == "true")) {
             setLocalData();
             document.location.reload();
         }
@@ -420,7 +420,7 @@ window.addEventListener('load', async function() {
         
         plusBtn.addEventListener('click', function() {
             changeQuantityInput(1);
-        })
+        });
         
         buyButton.addEventListener('click', function() {
             buyPressed = true;
@@ -440,27 +440,23 @@ window.addEventListener('load', async function() {
             
             buy(quantityVal, currentPressDelay, currentScanDelay);
         });
-    
+
         document.querySelector('#press-delay-hint').innerHTML = minPressDelay + '-' + maxPressDelay + ' ms';
         document.querySelector('#scan-delay-hint').innerHTML = minScanDelay + '-' + maxScanDelay + ' ms';
     
         checkENVersion();
         
-        if (trySetLocalData() == false) // if no cache (didn't refresh already)
-        {
+        /*if (trySetLocalData() == false) {
             let productId = getProdID();
             startRefreshWaiting(productId);
         }
+        else {
+            refreshInput.remove();
+        }*/
+
+        refreshInput.remove(); // !!!remove after testing on test version
         
     } catch (e) {
         printWarning(e.stack);
-    }
-});
-
-/* Test functions */
-document.addEventListener('keydown', function(event) {
-    if (event.shiftKey) {
-        setLocalData();
-        document.location.reload();
     }
 });
