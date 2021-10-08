@@ -300,8 +300,9 @@ async function startRefreshWaiting(prodId = "") {
         let currentTime = await GetServerTime();
         console.log("Current time: " + currentTime + '\n' + "Buy time: " + buyTime);
 
-        if (waitTime < 0) return;
         let waitTime = buyTime - currentTime - stopBeforeMs;
+        if (waitTime < 0) return;
+
         console.log("Wait time: " + waitTime);
         await sleep(waitTime);
         
