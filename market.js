@@ -3,7 +3,7 @@ const firstBtnClasses = "css-1qckmgm";
 const plusBtnClasses = "css-nphwqx";
 const maxBtnClasses = "css-1rqdfgy";
 const secondBtnClasses = "css-d8znws";
-const timerClasses = "css-1gfblx5";
+const timerClasses = "css-db296b";
 let container;
 
 const html = `
@@ -38,18 +38,57 @@ async function sleep(ms) {
 }
 
 async function GetElementsRecursive(classes, ms) {
-    let item = document.getElementsByClassName(classes);
-    while (item == null || item.length == 0) {
-        await sleep(ms);
-        item = document.getElementsByClassName(classes);
+    try {
+        let item = document.getElementsByClassName(classes);
+        while (item == null || item.length == 0) {
+            await sleep(ms);
+            item = document.getElementsByClassName(classes);
+        }
+        return item;
     }
-    return item;
+    catch (e) {
+        printWarning(e.stack);
+    }
 }
     
 async function GetSingleElementRecursive(classes, ms, index) {
     return ((await GetElementsRecursive(classes, ms))[index]);
 }
 
+/* XPATH FUNCTIONS */
+
+function createXPath(elem, innerText, contains) {
+    let xpath;
+    if (contains) {
+        xpath = "//" + elem + "[contains(text(),'" + innerText + "')]";
+    }
+    else {
+        xpath = "//" + elem + "[text()='" + innerText + "']";
+    }
+    return xpath;
+}
+
+async function GetElementsRecursiveXPath(xpath, ms) {
+    try {
+        let item = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        while (item == null || item.length == 0) {
+            await sleep(ms);
+            item = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+        }
+        return item;
+    }
+    catch (e) {
+        printWarning(e.stack);
+    }
+}
+
+async function GetSingleElementRecursiveXPath(xpath, ms, index) {
+    return ((await GetElementsRecursiveXPath(xpath, ms))[index]);
+}
+
+/* */
+
+let buyXPath, maxXPath, plusXPath, confirmXPath;
 let retries = 0;
 async function buy(quantity, pressDelay, scanDelay) {
     try {
@@ -65,15 +104,15 @@ async function buy(quantity, pressDelay, scanDelay) {
         console.log("Buy has started");
         printGood("Auto-buy has started! Waiting for sale.");
 
-        let button1 = await GetSingleElementRecursive(firstBtnClasses, scanDelay, 0);
+        let buyButton = await GetElementsRecursiveXPath(buyXPath, scanDelay);
         
         if (quantity == "max") {
-            let maxBtn = await GetSingleElementRecursive(maxBtnClasses, scanDelay, 0);
+            let maxBtn = await GetElementsRecursiveXPath(maxXPath, scanDelay);
             maxBtn.click();
             await sleep(pressDelay);
         }
         else {
-            let plusBtn = await GetSingleElementRecursive(plusBtnClasses, scanDelay, 1);
+            let plusBtn = await GetElementsRecursiveXPath(plusXPath, scanDelay);
             let pressQuantity = parseInt(quantity) - 1;
             while (pressQuantity != 0) {
                 plusBtn.click();
@@ -82,15 +121,16 @@ async function buy(quantity, pressDelay, scanDelay) {
             await sleep(pressDelay);
         }
         
-        button1.click();
+        buyButton.click();
         await sleep(pressDelay);
         
-        let button2 = await GetSingleElementRecursive(secondBtnClasses, scanDelay, 0);
-        while (button2 == null) {
-            button2 = await GetSingleElementRecursive(secondBtnClasses, 10, 0);
+        let confirmButton = await GetElementsRecursiveXPath(confirmXPath, scanDelay);
+        while (confirmButton == null) {
+            confirmButton = await GetElementsRecursiveXPath(confirmXPath, 10);
         }
+        
         await sleep(50);
-        button2.click();
+        confirmButton.click();
     }
     catch (e) {
         if (retries == 4) {
@@ -169,6 +209,11 @@ function printGood(msg) {
 /* Refresh functionality */
 let refreshInput;
 
+
+function DisableDelayedPurchase() {
+    refreshInput.disabled = true;
+}
+
 function setLocalData() {
     localStorage.setItem("isMax", isMax);
     localStorage.setItem("quantityValue", quantityValue);
@@ -209,39 +254,71 @@ function trySetLocalData() {
     return false;
 }
 
-const dayMs = 86400000;
-const hourMs = 3600000;
-const minuteMs = 60000;
-const secondMs = 1000;
-let refreshBeforeMs = secondMs * 15; 
-async function startRefreshWaiting() {
-try {
-    let timers = await GetElementsRecursive(timerClasses, 50); // null here
-    if (timers.length == 0) {
-        printWarning("No timers found!\n Disabled delayed purchase.");
-        return;
-    }; // no timers
+const timeUrl = "https://api.binance.com/api/v3/time";
+async function GetServerTime() {
+    let response = await fetch(timeUrl);
+    return ((await response.json()).serverTime);
+}
 
-    let days = parseInt(timers[0].innerHTML, 10);
-    let hours = parseInt(timers[1].innerHTML, 10);
-    let minutes = parseInt(timers[2].innerHTML, 10);
-    let seconds = parseInt(timers[3].innerHTML, 10);
-    
-    let waitTime = days * dayMs + hours * hourMs + minutes * minuteMs + seconds * secondMs - refreshBeforeMs;
-    console.log("Wait time: " + waitTime);
-    await sleep(waitTime);
-    
-    if (refreshInput.checked == true || refreshInput.checked == "true") {
-        setLocalData();
-        document.location.reload();
+const boxesInfoUrl = "https://www.binance.com/bapi/nft/v1/public/nft/mystery-box/list?page=1&size=5";
+async function GetBoxesInfo() {
+    try {
+        let response = await fetch(boxesInfoUrl);
+        let json = await response.json();
+        let boxes = json.data;
+        return boxes;
+    }
+    catch (e) {
+        printWarning(e.stack);
     }
 }
-catch (e) {
-    printWarning(e.stack);
+
+function GetBoxByID(boxes = {}, prodId = "") {
+    try {
+        for (let i = 0; i < boxes.length; i++) {
+            if (boxes[i].productId == prodId) {
+                return boxes[i];
+            }
+        }
+        printWarning("Box " + prodId + " not found! Delayed purchase disabled.");
+        DisableDelayedPurchase();
+    }
+    catch (e) {
+        printWarning(e.stack);
+    }
+    
 }
+
+const stopBeforeMs = 12000;
+async function startRefreshWaiting(prodId = "") {
+    try {
+        let boxes = await GetBoxesInfo();
+        let buyBox = GetBoxByID(boxes, prodId);
+        console.log(buyBox);
+
+        let buyTime = buyBox.startTime;
+        let currentTime = await GetServerTime();
+        console.log("Current time: " + currentTime + '\n' + "Buy time: " + buyTime);
+
+        let waitTime = buyTime - currentTime - stopBeforeMs;
+        if (waitTime < 0) return;
+
+        console.log("Wait time: " + waitTime);
+        await sleep(waitTime);
+        
+        if (refreshInput != null && (refreshInput.checked == true || refreshInput.checked == "true")) {
+            setLocalData();
+            document.location.reload();
+        }
+    }
+    catch (e) {
+        printWarning(e.stack);
+    }
 }
 
 /* */
+
+/* INIT FUNCTIONS */
 
 function createStartDiv() {
     container = document.createElement('div');
@@ -254,6 +331,18 @@ function createStartDiv() {
     container.style.outline = '3px solid rgb(240, 185,11)';
     container.innerHTML = html;
     document.body.appendChild(container);
+}
+
+function initXPaths() {
+    const buyName = "Buy";
+    const maxName = "Max";
+    const plusName = "+";
+    const confirmName = "Confirm";
+
+    buyXPath = createXPath("*", buyName, false);
+    maxXPath = createXPath("*", maxName, true);
+    plusXPath = createXPath("*", plusName, false);
+    confirmXPath = createXPath("*", confirmName, false);
 }
 
 function getElements() {
@@ -297,10 +386,29 @@ function getElements() {
     }
 }
 
+function checkENVersion() {
+    let url = document.location.href;
+    if (url.includes("/en/") == false) {
+        printWarning("Bot works only on English version! Please switch Binance page to English");
+        buyButton.remove();
+    }
+}
+
+function getProdID() {
+    let paramsString = document.location.search;
+    let params = new URLSearchParams(paramsString);
+    let prodId = params.get("productId");
+    return prodId;
+}
+
+/* */
+
 window.addEventListener('load', async function() {
     try {
         createStartDiv();
         getElements();
+        initXPaths();
+
         maxBtn.addEventListener('input', function(e) {
             isMax = this.checked;
             changeQuantityOpacity(isMax);
@@ -312,7 +420,7 @@ window.addEventListener('load', async function() {
         
         plusBtn.addEventListener('click', function() {
             changeQuantityInput(1);
-        })
+        });
         
         buyButton.addEventListener('click', function() {
             buyPressed = true;
@@ -332,23 +440,35 @@ window.addEventListener('load', async function() {
             
             buy(quantityVal, currentPressDelay, currentScanDelay);
         });
-    
+
         document.querySelector('#press-delay-hint').innerHTML = minPressDelay + '-' + maxPressDelay + ' ms';
         document.querySelector('#scan-delay-hint').innerHTML = minScanDelay + '-' + maxScanDelay + ' ms';
-        
-        if (!trySetLocalData())
-            startRefreshWaiting();
     
+        checkENVersion();
+        
+        if (trySetLocalData() == false) {
+            let productId = getProdID();
+            startRefreshWaiting(productId);
+        }
+        else {
+            refreshInput.remove();
+        }
+        
     } catch (e) {
         printWarning(e.stack);
     }
 });
 
 /* Test functions */
-document.addEventListener('keydown', function(event) {
-    if (event.ctrlKey) {
+document.addEventListener('keydown', async function(event) {
+    if (event.shiftKey) {
         setLocalData();
         document.location.reload();
     }
+    else if (event.ctrlKey) {
+        let productId = getProdID();
+        let boxes = await GetBoxesInfo();
+        let buyBox = GetBoxByID(boxes, productId);
+        console.log(buyBox.name);
+    }
 });
-/* */
