@@ -453,9 +453,6 @@ window.addEventListener('load', async function() {
         else {
             refreshInput.remove();
         }
-
-        refreshInput.remove();
-        document.querySelector('#refresh-input-label').remove();
         
     } catch (e) {
         printWarning(e.stack);
