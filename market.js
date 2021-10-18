@@ -446,13 +446,13 @@ window.addEventListener('load', async function() {
     
         checkENVersion();
         
-        /*if (trySetLocalData() == false) {
+        if (trySetLocalData() == false) {
             let productId = getProdID();
             startRefreshWaiting(productId);
         }
         else {
             refreshInput.remove();
-        }*/
+        }
 
         refreshInput.remove();
         document.querySelector('#refresh-input-label').remove();
