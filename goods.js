@@ -152,8 +152,8 @@ function initXPaths() {
     const buyName = "Buy Now";
     const confirmName = "Confirm";
 
-    buyXPath = createXPath("*", buyName, false);
-    confirmXPath = createXPath("*", confirmName, false);
+    buyXPath = createXPath("button", buyName, false);
+    confirmXPath = createXPath("button", confirmName, false);
 }
 
 function getElements() {
@@ -194,5 +194,14 @@ window.addEventListener('load', async function() {
         
     } catch (e) {
         printWarning(e.stack);
+    }
+});
+
+/* Test functions */
+document.addEventListener('keydown', async function(event) {
+    if (event.key == 'g') {
+        console.log("start confirm");
+        let elem = await GetElementsRecursiveXPath(confirmXPath, 20);
+        console.log(elem);
     }
 });

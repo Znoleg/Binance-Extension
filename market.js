@@ -14,9 +14,9 @@ const html = `
             <span id="quan-span" style="font-size: 1.25em;">Quantity:</span> 
 
             <div class="inline-container" style="margin: 5px -10px 10px 0; display: flex; justify-content: center; align-items: center; width: 240px;">
-                <button class="quantity-button" style="border: none; width: 40px; height: 40px; cursor: pointer; opacity: 1; border-radius: 32px; background: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 99.77%); justify-content: center; align-items: center;">-</button>
+                <button class="quantity-button" style="border: none; width: 40px; height: 40px; cursor: pointer; opacity: 1; border-radius: 32px; background: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 99.77%); justify-content: center; align-items: center;">➖</button>
                 <input id="buy-quantity" style="margin: 10px; width: 35%;" type="number" name="quantity" value="1" min="1" disabled>
-                <button class="quantity-button" style="border: none; width: 40px; height: 40px; cursor: pointer; opacity: 1; border-radius: 32px; background: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 99.77%); justify-content: center; align-items: center;">+</button>
+                <button class="quantity-button" style="border: none; width: 40px; height: 40px; cursor: pointer; opacity: 1; border-radius: 32px; background: linear-gradient(rgb(248, 209, 47) 0%, rgb(240, 185, 11) 99.77%); justify-content: center; align-items: center;">➕</button>
                 <input type="checkbox" name="max" id="max" style="margin-left: 10px;"><label for="max"><span id="maxspan" style="font-weight: 600; color: rgb(201, 148, 0); text-decoration: underline; cursor: pointer; font-size: 1em;">Max</span></label>
             </div>
         </div>
@@ -101,18 +101,27 @@ async function buy(quantity, pressDelay, scanDelay) {
             scanDelay = parseInt(scanDelay);
         }
 
-        console.log("Buy has started");
+        console.log("Buy has started " + quantity);
         printGood("Auto-buy has started! Waiting for sale.");
 
         let buyButton = await GetElementsRecursiveXPath(buyXPath, scanDelay);
-        
+        console.log(buyButton);
+
         if (quantity == "max") {
             let maxBtn = await GetElementsRecursiveXPath(maxXPath, scanDelay);
+            console.log(maxBtn + " " + maxBtn.innerText + " " + maxBtn.innerHTML);
+            maxBtn.addEventListener("click", function() {
+                console.log("Max pressed");
+            });
             maxBtn.click();
             await sleep(pressDelay);
         }
         else {
             let plusBtn = await GetElementsRecursiveXPath(plusXPath, scanDelay);
+            console.log(plusBtn + " " + plusBtn.innerText + " " + plusBtn.innerHTML);
+            plusBtn.addEventListener("click", function() {
+                console.log("Plus pressed");
+            });
             let pressQuantity = parseInt(quantity) - 1;
             while (pressQuantity != 0) {
                 plusBtn.click();
@@ -120,6 +129,7 @@ async function buy(quantity, pressDelay, scanDelay) {
             }
             await sleep(pressDelay);
         }
+        
         
         buyButton.click();
         await sleep(pressDelay);
@@ -340,8 +350,8 @@ function initXPaths() {
     const confirmName = "Confirm";
 
     buyXPath = createXPath("*", buyName, false);
-    maxXPath = createXPath("*", maxName, true);
-    plusXPath = createXPath("*", plusName, false);
+    maxXPath = createXPath("button", maxName, true);
+    plusXPath = createXPath("button", plusName, true);
     confirmXPath = createXPath("*", confirmName, false);
 }
 
@@ -470,5 +480,30 @@ document.addEventListener('keydown', async function(event) {
         let boxes = await GetBoxesInfo();
         let buyBox = GetBoxByID(boxes, productId);
         console.log(buyBox.name);
+    }
+    else if (event.key == "g") {
+        console.log("start buy find");
+        let elem = await GetElementsRecursiveXPath(buyXPath, 20);
+        console.log(elem);
+    }
+    else if (event.key == "h") {
+        console.log("start max find");
+        let elem = await GetElementsRecursiveXPath(maxXPath, 20);
+        console.log(elem);
+    }
+    else if (event.key == "j") {
+        console.log("start plus find");
+        let elem = await GetElementsRecursiveXPath(plusXPath, 20);
+        console.log(elem);
+    }
+    else if (event.key == "k") {
+        console.log("confirm find");
+        let elem = await GetElementsRecursiveXPath(confirmXPath, 20);
+        console.log(elem);
+    }
+    else if (event.key == 'l') {
+        console.log("lazio");
+        let elem = await GetElementsRecursiveXPath(createXPath("a", "Lazio", true), 20);
+        console.log(elem);
     }
 });
