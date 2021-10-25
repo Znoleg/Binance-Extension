@@ -153,7 +153,7 @@ function initXPaths() {
     const confirmName = "Confirm";
 
     buyXPath = createXPath("button", buyName, false);
-    confirmXPath = createXPath("button", confirmName, false);
+    confirmXPath = createXPath("*", confirmName, true);
 }
 
 function getElements() {

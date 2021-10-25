@@ -171,8 +171,8 @@ let buyPressed = false;
 function changeQuantityOpacity(isChecked) {
     const offOpacity = 0.3;
     const onOpacity = 1;
-    minusBtn.disabled = true;
-    plusBtn.disabled = true;
+    minusBtn.disabled = isChecked;
+    plusBtn.disabled = isChecked;
     
     let newOpacity;
     if (isChecked == true) {
@@ -346,13 +346,13 @@ function createStartDiv() {
 function initXPaths() {
     const buyName = "Buy";
     const maxName = "Max";
-    const plusName = "+";
+    const plusName = "＋";
     const confirmName = "Confirm";
 
-    buyXPath = createXPath("*", buyName, false);
-    maxXPath = createXPath("button", maxName, true);
-    plusXPath = createXPath("button", plusName, true);
-    confirmXPath = createXPath("*", confirmName, false);
+    buyXPath = createXPath("button", buyName, false);
+    maxXPath = createXPath("div", maxName, true);
+    plusXPath = createXPath("div", plusName, false);
+    confirmXPath = createXPath("button", confirmName, false);
 }
 
 function getElements() {
@@ -363,8 +363,6 @@ function getElements() {
         let buttons = document.querySelectorAll('.quantity-button');
         minusBtn = buttons[0];
         plusBtn = buttons[1];
-        /*minusBtn.disabled = true;
-        plusBtn.disabled = true;*/
 
         quantityInput = document.querySelector('#buy-quantity');
         quantityValue = parseInt(quantityInput.getAttribute('value')); 
