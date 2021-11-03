@@ -74,15 +74,17 @@ async function buy(pressDelay, scanDelay) {
 
         let buyButton = await GetElementsRecursiveXPath(buyXPath, scanDelay);
         buyButton.click();
+        console.log(buyButton);
         await sleep(pressDelay);
         
         let confirmButton = await GetElementsRecursiveXPath(confirmXPath, scanDelay);
         while (confirmButton == null) {
             confirmButton = await GetElementsRecursiveXPath(confirmXPath, 10);
         }
+        console.log(confirmButton);
+        console.log(confirmButton.innerHTML);
         
-        await sleep(25);
-        confirmButton.click();
+        await PressConfirm(confirmButton, 10);
     }
     catch (e) {
         if (retries == 4) {
@@ -91,6 +93,18 @@ async function buy(pressDelay, scanDelay) {
         printWarning(e.stack);
         retries++;
         buy(quantity);
+    }
+
+    async function PressConfirm(confirmBtn, delayTime = 10) {
+        let isClicked = false;
+        confirmBtn.addEventListener('click', function() {
+            isClicked = true;
+            console.log("confirm clicked");
+        });
+        do {
+            confirmBtn.click();
+            await sleep(delayTime);
+        } while (isClicked == false);
     }
 }
 
@@ -153,7 +167,7 @@ function initXPaths() {
     const confirmName = "Confirm";
 
     buyXPath = createXPath("button", buyName, false);
-    confirmXPath = createXPath("*", confirmName, true);
+    confirmXPath = createXPath("button", confirmName, false);
 }
 
 function getElements() {
