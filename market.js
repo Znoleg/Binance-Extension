@@ -22,9 +22,9 @@ const html = `
         </div>
     </div>
     <div id="setting-block">
-        Button press delay: <input id="press-delay" type="range" min="20" max="75" value="45"><span id="press-delay-hint" style="font-size: 0.75em;"></span>
+        Button press delay: <input id="press-delay" type="range" min="10" max="75" value="45"><span id="press-delay-hint" style="font-size: 0.75em;"></span>
         <p></p>
-        Button scan delay: <input id="scan-delay" type="range" min="15" max="30" value="20"><span id="scan-delay-hint" style="font-size: 0.75em;"></span>
+        Button scan delay: <input id="scan-delay" type="range" min="5" max="30" value="20"><span id="scan-delay-hint" style="font-size: 0.75em;"></span>
         <p></p>
         <input type="checkbox" name="refresh-input" id="refresh-input"><label for="refresh-input">Delayed purchase</label>
     </div>
@@ -139,8 +139,11 @@ async function buy(quantity, pressDelay, scanDelay) {
             confirmButton = await GetElementsRecursiveXPath(confirmXPath, 10);
         }
         
-        await sleep(50);
-        confirmButton.click();
+        const confirmClickDelay = 30;
+        for (let i = 0; i < 150; i++) {
+            confirmButton.click();
+            sleep(confirmClickDelay);
+        }
     }
     catch (e) {
         if (retries == 4) {
@@ -283,7 +286,7 @@ async function GetBoxesInfo() {
     }
 }
 
-function GetBoxByID(boxes = {}, prodId = "") {
+function GetBoxByID(boxes = [], prodId = "") {
     try {
         for (let i = 0; i < boxes.length; i++) {
             if (boxes[i].productId == prodId) {
