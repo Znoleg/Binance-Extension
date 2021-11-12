@@ -81,10 +81,12 @@ async function buy(pressDelay, scanDelay) {
         while (confirmButton == null) {
             confirmButton = await GetElementsRecursiveXPath(confirmXPath, 10);
         }
-        console.log(confirmButton);
-        console.log(confirmButton.innerHTML);
         
-        await PressConfirm(confirmButton, 10);
+        const confirmClickDelay = 30;
+        for (let i = 0; i < 150; i++) {
+            confirmButton.click();
+            await sleep(confirmClickDelay);
+        }
     }
     catch (e) {
         if (retries == 4) {
@@ -93,18 +95,6 @@ async function buy(pressDelay, scanDelay) {
         printWarning(e.stack);
         retries++;
         buy(quantity);
-    }
-
-    async function PressConfirm(confirmBtn, delayTime = 10) {
-        let isClicked = false;
-        confirmBtn.addEventListener('click', function() {
-            isClicked = true;
-            console.log("confirm clicked");
-        });
-        do {
-            confirmBtn.click();
-            await sleep(delayTime);
-        } while (isClicked == false);
     }
 }
 

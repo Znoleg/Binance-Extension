@@ -142,7 +142,7 @@ async function buy(quantity, pressDelay, scanDelay) {
         const confirmClickDelay = 30;
         for (let i = 0; i < 150; i++) {
             confirmButton.click();
-            sleep(confirmClickDelay);
+            await sleep(confirmClickDelay);
         }
     }
     catch (e) {
