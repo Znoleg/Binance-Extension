@@ -22,7 +22,7 @@ const html = `
         </div>
     </div>
     <div id="setting-block">
-        Button press delay: <input id="press-delay" type="range" min="10" max="75" value="45"><span id="press-delay-hint" style="font-size: 0.75em;"></span>
+        Button press delay: <input id="press-delay" type="range" min="5" max="75" value="45"><span id="press-delay-hint" style="font-size: 0.75em;"></span>
         <p></p>
         Button scan delay: <input id="scan-delay" type="range" min="5" max="30" value="20"><span id="scan-delay-hint" style="font-size: 0.75em;"></span>
         <p></p>
@@ -88,50 +88,25 @@ async function GetSingleElementRecursiveXPath(xpath, ms, index) {
 
 /* */
 
+async function sureButtonPress(button, ms = 10) {
+    let pressFlag = false;
+    button.addEventListener('click', function () {
+        pressFlag = true;
+        console.log("click");
+    });
+    while (pressFlag == false) {
+        console.log("trying click");
+        button.click();
+        await sleep(ms);
+    }
+}
+
 let buyXPath, maxXPath, plusXPath, confirmXPath;
 let retries = 0;
-async function buy(quantity, pressDelay, scanDelay) {
+async function buy(buyButton, pressDelay = 0, scanDelay = 0) {
     try {
-        if (pressDelay == null || pressDelay == 0 || scanDelay == null || scanDelay == 0) {
-            if (pressDelay == null || pressDelay == 0) pressDelay = 50;
-            if (scanDelay == null || scanDelay == 0) scanDelay = 20;
-        }
-        else {
-            pressDelay = parseInt(pressDelay);
-            scanDelay = parseInt(scanDelay);
-        }
-
-        console.log("Buy has started " + quantity);
-        printGood("Auto-buy has started! Waiting for sale.");
-
-        let buyButton = await GetElementsRecursiveXPath(buyXPath, scanDelay);
-        console.log(buyButton);
-
-        if (quantity == "max") {
-            let maxBtn = await GetElementsRecursiveXPath(maxXPath, scanDelay);
-            console.log(maxBtn + " " + maxBtn.innerText + " " + maxBtn.innerHTML);
-            maxBtn.addEventListener("click", function() {
-                console.log("Max pressed");
-            });
-            maxBtn.click();
-            await sleep(pressDelay);
-        }
-        else {
-            let plusBtn = await GetElementsRecursiveXPath(plusXPath, scanDelay);
-            console.log(plusBtn + " " + plusBtn.innerText + " " + plusBtn.innerHTML);
-            plusBtn.addEventListener("click", function() {
-                console.log("Plus pressed");
-            });
-            let pressQuantity = parseInt(quantity) - 1;
-            while (pressQuantity != 0) {
-                plusBtn.click();
-                pressQuantity--;
-            }
-            await sleep(pressDelay);
-        }
-        
-        
-        buyButton.click();
+        console.log("buying");
+        await sureButtonPress(buyButton, 5);
         await sleep(pressDelay);
         
         let confirmButton = await GetElementsRecursiveXPath(confirmXPath, scanDelay);
@@ -267,6 +242,13 @@ function trySetLocalData() {
     return false;
 }
 
+function exitWithLocalData() {
+    if (refreshInput != null && (refreshInput.checked == true || refreshInput.checked == "true")) {
+        setLocalData();
+        document.location.reload();
+    }
+}
+
 const timeUrl = "https://api.binance.com/api/v3/time";
 async function GetServerTime() {
     let response = await fetch(timeUrl);
@@ -302,31 +284,40 @@ function GetBoxByID(boxes = [], prodId = "") {
     
 }
 
-const stopBeforeMs = 12000;
-async function startRefreshWaiting(prodId = "") {
-    try {
-        let boxes = await GetBoxesInfo();
-        let buyBox = GetBoxByID(boxes, prodId);
-        console.log(buyBox);
+async function getBoxSaleTime(prodId = "") {
+    let boxes = await GetBoxesInfo();
+    let buyBox = GetBoxByID(boxes, prodId);
+    console.log(buyBox);
+    let buyTime = buyBox.startTime;
+    return buyTime;
+}
 
-        let buyTime = buyBox.startTime;
+async function startRefreshWaiting(buyTime, stopBefore, callback = () => {}) {
+    try {
         let currentTime = await GetServerTime();
         console.log("Current time: " + currentTime + '\n' + "Buy time: " + buyTime);
 
-        let waitTime = buyTime - currentTime - stopBeforeMs;
+        let waitTime = buyTime - currentTime - stopBefore;
         if (waitTime < 0) return;
 
         console.log("Wait time: " + waitTime);
         await sleep(waitTime);
         
-        if (refreshInput != null && (refreshInput.checked == true || refreshInput.checked == "true")) {
-            setLocalData();
-            document.location.reload();
-        }
+        callback();
     }
     catch (e) {
         printWarning(e.stack);
     }
+}
+
+async function waitForCondition(checkTime = 100, f = () => false) {
+    let result = f();
+    while (result == false) {
+        console.log(result);
+        await sleep(checkTime);
+        result = f();
+    }
+    return;
 }
 
 /* */
@@ -414,11 +405,17 @@ function getProdID() {
 
 /* */
 
+let productId;
+let boxSaleTime;
 window.addEventListener('load', async function() {
     try {
         createStartDiv();
         getElements();
         initXPaths();
+        turnOffStuff();
+        checkENVersion();
+        productId = getProdID();
+        boxSaleTime = await getBoxSaleTime(productId);
 
         maxBtn.addEventListener('input', function(e) {
             isMax = this.checked;
@@ -433,14 +430,8 @@ window.addEventListener('load', async function() {
             changeQuantityInput(1);
         });
         
-        buyButton.addEventListener('click', function() {
-            buyPressed = true;
-            buyButton.disabled = true;
-            plusBtn.disabled = true;
-            minusBtn.disabled = true;
-            currentPressDelay = parseInt(pressDelayInput.value);
-            currentScanDelay = parseInt(scanDelayInput.value);
-            
+        buyButton.addEventListener('click', async function() {
+            DoVisualStuff();
             let quantityVal;
             if (isMax == true) {
                 quantityVal = "max";
@@ -449,17 +440,42 @@ window.addEventListener('load', async function() {
                 quantityVal = quantityValue;
             }
             
-            buy(quantityVal, currentPressDelay, currentScanDelay);
+            let aucBuyButton = await GetElementsRecursiveXPath(buyXPath, 10);
+            console.log(aucBuyButton);
+            
+            console.log("Buy has started");
+            printGood("Auto-buy has started! Waiting for sale.");
+            
+            console.log(currentPressDelay + " " + currentScanDelay);
+            await waitForCondition(10, isBuyButtonEnabled);
+            await buy(aucBuyButton, currentPressDelay, currentScanDelay);
+
+            function isBuyButtonEnabled() {
+                return !aucBuyButton.disabled;
+            }
+
+            function DoVisualStuff() {
+                buyPressed = true;
+                buyButton.disabled = true;
+                plusBtn.disabled = true;
+                minusBtn.disabled = true;
+                currentPressDelay = parseInt(pressDelayInput.value);
+                currentScanDelay = parseInt(scanDelayInput.value);
+            }
         });
 
         document.querySelector('#press-delay-hint').innerHTML = minPressDelay + '-' + maxPressDelay + ' ms';
         document.querySelector('#scan-delay-hint').innerHTML = minScanDelay + '-' + maxScanDelay + ' ms';
     
-        checkENVersion();
-        
+        function turnOffStuff() {
+            refreshInput.disabled = true;
+            maxBtn.disabled = true;
+            minusBtn.disabled = true;
+            plusBtn.disabled = true;
+        }
+
         if (trySetLocalData() == false) {
-            let productId = getProdID();
-            startRefreshWaiting(productId);
+            startRefreshWaiting(boxSaleTime, 12);
         }
         else {
             refreshInput.remove();
