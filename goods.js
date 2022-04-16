@@ -10,16 +10,20 @@ const html = `
 </body>
 `;
 
+const buyButtonPanelClass = "css-17j5x1b";
+const buyNowButtonClass = "css-1gv20g8";
+const confirmButtonClass = "css-1p9f32f";
+
 async function sleep(ms) {
     await new Promise(r => setTimeout(r, ms));    
 }
 
-async function GetElementsRecursive(classes, ms) {
+async function GetElementsRecursive(classes, ms, parent = document) {
     try {
-        let item = document.getElementsByClassName(classes);
+        let item = parent.getElementsByClassName(classes);
         while (item == null || item.length == 0) {
             await sleep(ms);
-            item = document.getElementsByClassName(classes);
+            item = parent.getElementsByClassName(classes);
         }
         return item;
     }
@@ -28,8 +32,8 @@ async function GetElementsRecursive(classes, ms) {
     }
 }
     
-async function GetSingleElementRecursive(classes, ms, index) {
-    return ((await GetElementsRecursive(classes, ms))[index]);
+async function GetSingleElementRecursive(classes, ms, index, parent = document) {
+    return ((await GetElementsRecursive(classes, ms, parent))[index]);
 }
 
 /* XPATH FUNCTIONS */
@@ -66,25 +70,25 @@ async function GetSingleElementRecursiveXPath(xpath, ms, index) {
 /* */
 
 let buyXPath, confirmXPath;
+let buyButtonParent;
 let retries = 0;
 async function buy(pressDelay, scanDelay) {
     try {
         console.log("Buy has started");
         printGood("Auto-buy has started! Waiting for sale.");
 
-        let buyButton = await GetElementsRecursiveXPath(buyXPath, scanDelay);
+        //let buyButton = await GetElementsRecursiveXPath(buyXPath, scanDelay);
+        let buyButton = await GetSingleElementRecursive(buyNowButtonClass, scanDelay, 0, buyButtonParent);
         buyButton.click();
-        console.log(buyButton);
         await sleep(pressDelay);
         
-        let confirmButton = await GetElementsRecursiveXPath(confirmXPath, scanDelay);
-        while (confirmButton == null) {
-            confirmButton = await GetElementsRecursiveXPath(confirmXPath, 10);
-        }
+        //let confirmButton = await GetSingleElementRecursiveXPath(confirmXPath, scanDelay);
+        let confirmButton = await GetSingleElementRecursive(confirmButtonClass, scanDelay, 0);
         
         const confirmClickDelay = 30;
-        for (let i = 0; i < 150; i++) {
+        for (let i = 0; i < 1000; i++) {
             confirmButton.click();
+            console.log("confirm clicked");
             await sleep(confirmClickDelay);
         }
     }
@@ -94,7 +98,7 @@ async function buy(pressDelay, scanDelay) {
         }
         printWarning(e.stack);
         retries++;
-        buy(quantity);
+        buy(pressDelay, scanDelay);
     }
 }
 
@@ -102,14 +106,6 @@ let msgSpan;
 let buyButton;
 
 /* Visual functions */
-
-function changeQuantityOpacity(isChecked) {
-
-}
-
-function changeQuantityInput(delta) {
-
-}
 
 function printWarning(msg) {
     container.style.bottom = '12%';
@@ -180,8 +176,13 @@ function checkENVersion() {
 
 /* */
 
+async function tryGetBuyButtonParent() {
+    buyButtonParent = await GetSingleElementRecursive(buyButtonPanelClass, 5, 0);
+}
+
 window.addEventListener('load', async function() {
     try {
+        buyButtonParent = this.document;
         createStartDiv();
         getElements();
         initXPaths();
@@ -189,12 +190,13 @@ window.addEventListener('load', async function() {
         buyButton.addEventListener('click', function() {
             buyButton.disabled = true;
             
-            const pressDelay = 20;
-            const scanDelay = 15;
+            const pressDelay = 5;
+            const scanDelay = 5;
             buy(pressDelay, scanDelay);
         });
     
         checkENVersion();
+        tryGetBuyButtonParent();
         
     } catch (e) {
         printWarning(e.stack);
